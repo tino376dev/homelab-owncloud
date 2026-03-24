@@ -1,0 +1,1 @@
+docker compose -f src/01-networks.yaml -f src/02-traefik-cloudflared.yaml -f src/03-authelia.yaml -f src/04-minio.yaml up

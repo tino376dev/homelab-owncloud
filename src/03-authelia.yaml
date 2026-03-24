@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+  authelia:
+    image: authelia/authelia:latest
+    container_name: authelia
+    restart: unless-stopped
+    networks:
+      - frontend
+      - backend
+    environment:
+      - TZ=${TZ:-Europe/Zurich}
+      - AUTHELIA_STORAGE_ENCRYPTION_KEY=${AUTHELIA_STORAGE_ENCRYPTION_KEY}
+      - AUTHELIA_SESSION_SECRET=${AUTHELIA_SESSION_SECRET}
+      - AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET=${AUTHELIA_JWT_SECRET}
+      - AUTHELIA_IDENTITY_PROVIDERS_OIDC_HMAC_SECRET=${AUTHELIA_JWT_SECRET}
+      - AUTHELIA_STORAGE_POSTGRES_PASSWORD=${AUTHELIA_DB_PASSWORD}
+      - X_AUTHELIA_CONFIG_FILTERS=template
+    volumes:
+      - ${DB_BASE}/authelia/configuration.yml:/config/configuration.yml${VOLUME_OPTS}
+      - ${DB_BASE}/authelia/users_database.yml:/config/users_database.yml${VOLUME_OPTS}
+      - ${DB_BASE}/authelia/private.pem:/config/private.pem${VOLUME_OPTS}
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:9091/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      traefik:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.authelia.rule=Host(`auth.${DOMAIN}`)"
+      - "traefik.http.routers.authelia.entrypoints=web"
+      - "traefik.http.routers.authelia.middlewares=authelia-https"
+      - "traefik.http.middlewares.authelia-https.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.services.authelia.loadbalancer.server.port=9091"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: authelia-postgres
+    restart: unless-stopped
+    networks:
+      - backend
+    environment:
+      - POSTGRES_DB=authelia
+      - POSTGRES_USER=${AUTHELIA_DB_USER:-authelia}
+      - POSTGRES_PASSWORD=${AUTHELIA_DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTHELIA_DB_USER:-authelia} -d authelia"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - ${DB_BASE}/postgres_authelia:/var/lib/postgresql/data${VOLUME_OPTS}

@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  ####################################################################
+  # MinIO (S3 backend)
+  ####################################################################
+  minio:
+    image: quay.io/minio/aistor/minio
+    container_name: minio
+    restart: unless-stopped
+    command: server /mnt/data --console-address ":9001" --license /minio.license
+    networks:
+      - frontend
+      - backend
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_API_ROOT_ACCESS=off
+
+      # OIDC via Authelia
+      - MINIO_IDENTITY_OPENID_CONFIG_URL=https://auth.${DOMAIN}/.well-known/openid-configuration
+      - MINIO_IDENTITY_OPENID_CLIENT_ID=minio-console
+      - MINIO_IDENTITY_OPENID_CLIENT_SECRET=${MINIO_OIDC_SECRET}
+      - MINIO_IDENTITY_OPENID_SCOPES=openid,profile,email,groups
+      - MINIO_IDENTITY_OPENID_REDIRECT_URI=https://minio.${DOMAIN}/oauth_callback
+      - MINIO_IDENTITY_OPENID_REDIRECT_URI_DYNAMIC=off
+      - MINIO_IDENTITY_OPENID_DISPLAY_NAME=Authelia
+      - MINIO_IDENTITY_OPENID_CLAIM_NAME=groups
+      - MINIO_IDENTITY_OPENID_CLAIM_USERINFO=off
+    depends_on:
+      authelia:
+        condition: service_healthy
+    volumes:
+      - .minio.license:/minio.license:ro,Z
+      - ${DB_BASE}/minio:/mnt/data${VOLUME_OPTS}
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.minio.rule=Host(`minio.${DOMAIN}`)"
+      - "traefik.http.routers.minio.entrypoints=web"
+      - "traefik.http.services.minio.loadbalancer.server.port=9001"

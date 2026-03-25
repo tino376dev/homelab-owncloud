@@ -11,8 +11,8 @@ services:
     networks:
       - frontend
     depends_on:
-        cloudflared:
-          condition: service_healthy
+      cloudflared:
+        condition: service_healthy
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
@@ -25,7 +25,7 @@ services:
 
       # Dashboard (via auth)
       - "--api.dashboard=true"
-      
+
       # Health check endpoint
       - "--ping=true"
 
@@ -47,7 +47,7 @@ services:
       - "traefik.http.middlewares.authelia.forwardauth.trustForwardHeader=true"
       - "traefik.http.middlewares.authelia.forwardauth.authResponseHeaders=Remote-User,Remote-Groups,Remote-Name,Remote-Email"
     ports:
-      - "8080:8080"   # DO NOT expose :80 or :443
+      - "8080:8080" # DO NOT expose :80 or :443
     volumes:
       - ${CONTAINER_SOCKET}:/var/run/docker.sock:ro
 
@@ -61,7 +61,7 @@ services:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     command: tunnel run
     healthcheck:
-      test: ['CMD', 'cloudflared', '--version']
+      test: ["CMD", "cloudflared", "--version"]
       interval: 1s
       timeout: 1s
       retries: 10

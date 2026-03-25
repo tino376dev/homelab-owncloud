@@ -21,7 +21,8 @@ services:
       - ${DB_BASE}/authelia/users_database.yml:/config/users_database.yml${VOLUME_OPTS}
       - ${DB_BASE}/authelia/private.pem:/config/private.pem${VOLUME_OPTS}
     healthcheck:
-      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:9091/api/health"]
+      test:
+        ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:9091/api/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -50,7 +51,8 @@ services:
       - POSTGRES_USER=${AUTHELIA_DB_USER:-authelia}
       - POSTGRES_PASSWORD=${AUTHELIA_DB_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${AUTHELIA_DB_USER:-authelia} -d authelia"]
+      test:
+        ["CMD-SHELL", "pg_isready -U ${AUTHELIA_DB_USER:-authelia} -d authelia"]
       interval: 10s
       timeout: 5s
       retries: 5

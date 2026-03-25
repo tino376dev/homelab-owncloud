@@ -8,6 +8,8 @@ services:
     depends_on:
       traefik:
         condition: service_started
+      authelia:
+        condition: service_healthy
     networks:
       - frontend
       - backend
@@ -22,3 +24,10 @@ services:
       - "traefik.http.routers.vw.rule=Host(`vault.${DOMAIN}`)"
       - "traefik.http.routers.vw.entrypoints=web"
       - "traefik.http.services.vw.loadbalancer.server.port=80"
+      
+      # Protect /admin behind Authelia SSO
+      - "traefik.http.routers.vw-admin.rule=Host(`vault.${DOMAIN}`) && PathPrefix(`/admin`)"
+      - "traefik.http.routers.vw-admin.entrypoints=web"
+      - "traefik.http.routers.vw-admin.priority=100"
+      - "traefik.http.routers.vw-admin.middlewares=authelia-https@docker,authelia@docker"
+      - "traefik.http.routers.vw-admin.service=vw@docker"

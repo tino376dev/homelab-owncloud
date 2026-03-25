@@ -12,7 +12,7 @@ services:
       - frontend
     depends_on:
         cloudflared:
-          condition: service_started
+          condition: service_healthy
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
@@ -25,19 +25,34 @@ services:
 
       # Dashboard (via auth)
       - "--api.dashboard=true"
+      
+      # Health check endpoint
+      - "--ping=true"
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "-", "http://127.0.0.1:8080/ping"]
+      interval: 1s
+      timeout: 1s
+      retries: 10
+      start_period: 5s
 
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)"
       - "traefik.http.routers.dashboard.entrypoints=web"
       - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=authelia-https@docker,authelia@docker"
+      - "traefik.http.middlewares.authelia-https.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.authelia.forwardauth.address=http://authelia:9091/api/authz/forward-auth"
+      - "traefik.http.middlewares.authelia.forwardauth.trustForwardHeader=true"
+      - "traefik.http.middlewares.authelia.forwardauth.authResponseHeaders=Remote-User,Remote-Groups,Remote-Name,Remote-Email"
     ports:
       - "8080:8080"   # DO NOT expose :80 or :443
     volumes:
       - ${CONTAINER_SOCKET}:/var/run/docker.sock:ro
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: docker.io/cloudflare/cloudflared:latest
     container_name: cloudflared
     restart: unless-stopped
     networks:
@@ -45,3 +60,9 @@ services:
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     command: tunnel run
+    healthcheck:
+      test: ['CMD', 'cloudflared', '--version']
+      interval: 1s
+      timeout: 1s
+      retries: 10
+      start_period: 5s

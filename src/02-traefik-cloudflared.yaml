@@ -34,7 +34,7 @@ services:
     ports:
       - "8080:8080"   # DO NOT expose :80 or :443
     volumes:
-      - ${XDG_RUNTIME_DIR}/podman/podman.sock:/var/run/docker.sock:ro
+      - ${CONTAINER_SOCKET}:/var/run/docker.sock:ro
 
   cloudflared:
     image: cloudflare/cloudflared:latest

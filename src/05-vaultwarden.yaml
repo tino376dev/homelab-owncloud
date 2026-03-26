@@ -17,8 +17,10 @@ services:
       - SIGNUPS_ALLOWED=false
       - ADMIN_TOKEN=${VAULTWARDEN_ADMIN_TOKEN}
       - DOMAIN=https://vault.${DOMAIN}
-    volumes:
-      - ${DB_BASE}/vaultwarden:/data${VOLUME_OPTS}
+    # Debug mode: persistent Vaultwarden data mount disabled.
+    # Uncomment the lines below to restore persistence.
+    # volumes:
+    #   - ${DB_BASE}/vaultwarden:/data${VOLUME_OPTS}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.vw.rule=Host(`vault.${DOMAIN}`)"

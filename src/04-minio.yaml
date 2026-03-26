@@ -22,7 +22,7 @@ services:
       - MINIO_IDENTITY_OPENID_CLIENT_ID=minio-console
       - MINIO_IDENTITY_OPENID_CLIENT_SECRET=${MINIO_OIDC_SECRET}
       - MINIO_IDENTITY_OPENID_SCOPES=openid,profile,email,groups
-      - MINIO_IDENTITY_OPENID_REDIRECT_URI=https://minio.${DOMAIN}/oauth_callback
+      - MINIO_IDENTITY_OPENID_REDIRECT_URI=https://s3.${DOMAIN}/oauth_callback
       - MINIO_IDENTITY_OPENID_REDIRECT_URI_DYNAMIC=off
       - MINIO_IDENTITY_OPENID_DISPLAY_NAME=Authelia
       - MINIO_IDENTITY_OPENID_CLAIM_NAME=groups
@@ -32,10 +32,12 @@ services:
         condition: service_healthy
     volumes:
       - .minio.license:/minio.license:ro,Z
-      - ${DB_BASE}/minio:/mnt/data${VOLUME_OPTS}
+      # Debug mode: persistent MinIO data mount disabled.
+      # Uncomment the line below to restore persistence.
+      # - ${DB_BASE}/minio:/mnt/data${VOLUME_OPTS}
 
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.minio.rule=Host(`minio.${DOMAIN}`)"
+      - "traefik.http.routers.minio.rule=Host(`s3.${DOMAIN}`)"
       - "traefik.http.routers.minio.entrypoints=web"
       - "traefik.http.services.minio.loadbalancer.server.port=9001"

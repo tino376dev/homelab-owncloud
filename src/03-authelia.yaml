@@ -57,5 +57,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-    volumes:
-      - ${DB_BASE}/authelia-postgres:/var/lib/postgresql/data${VOLUME_OPTS}
+    # Debug mode: persistent PostgreSQL data mount disabled.
+    # Uncomment the lines below to restore persistence.
+    # volumes:
+    #   - ${DB_BASE}/authelia-postgres:/var/lib/postgresql/data${VOLUME_OPTS}

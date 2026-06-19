@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   authelia:
     image: docker.io/authelia/authelia:latest
@@ -22,11 +20,11 @@ services:
       - ${DB_BASE}/authelia/private.pem:/config/private.pem${VOLUME_OPTS}
     healthcheck:
       test:
-        ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:9091/api/health"]
+        ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:9091/.well-known/openid-configuration"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      start_period: 45s
     depends_on:
       traefik:
         condition: service_started
@@ -59,5 +57,5 @@ services:
       start_period: 10s
     # Debug mode: persistent PostgreSQL data mount disabled.
     # Uncomment the lines below to restore persistence.
-    # volumes:
-    #   - ${DB_BASE}/authelia-postgres:/var/lib/postgresql/data${VOLUME_OPTS}
+    volumes:
+      - ${DB_BASE}/authelia-postgres:/var/lib/postgresql/data${VOLUME_OPTS}

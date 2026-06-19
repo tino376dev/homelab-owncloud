@@ -14,10 +14,8 @@ services:
       - POSTGRES_PASSWORD=${IMMICH_DB_PASSWORD}
       - POSTGRES_DB=immich
       - POSTGRES_USER=immich
-    # Debug mode: persistent Immich DB mount disabled.
-    # Uncomment the lines below to restore persistence.
-    # volumes:
-    #   - ${DB_BASE}/postgres_immich:/var/lib/postgresql/data${VOLUME_OPTS}
+    volumes:
+      - ${DB_BASE}/postgres_immich:/var/lib/postgresql/data${VOLUME_OPTS}
 
   ####################################################################
   # Immich Redis
@@ -26,8 +24,11 @@ services:
     image: redis:7-alpine
     container_name: immich-redis
     restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
     networks:
       - backend
+    volumes:
+      - ${DB_BASE}/redis_immich:/data${VOLUME_OPTS}
 
   ####################################################################
   # Immich App Server
@@ -40,9 +41,10 @@ services:
       - frontend
       - backend
     depends_on:
-      - immich-db
-      - immich-redis
-      - minio
+      immich-db:
+        condition: service_started
+      immich-redis:
+        condition: service_started
     environment:
       - DB_HOSTNAME=immich-db
       - DB_USERNAME=immich
@@ -50,15 +52,7 @@ services:
       - DB_DATABASE_NAME=immich
       - REDIS_HOSTNAME=immich-redis
       - TZ=${TZ:-Europe/Zurich}
-
-      # S3 storage backend (MinIO service)
-      - IMMICH_STORAGE_BACKEND=s3
-      - IMMICH_STORAGE_ENDPOINT=http://minio:9000
-      - IMMICH_STORAGE_REGION=us-east-1
-      - IMMICH_STORAGE_ACCESS_KEY=${MINIO_ROOT_USER}
-      - IMMICH_STORAGE_SECRET_KEY=${MINIO_ROOT_PASSWORD}
-      - IMMICH_STORAGE_BUCKET=${MINIO_BUCKET_NAME:-immich}
-      - IMMICH_STORAGE_USE_SSL=false
+      - IMMICH_DISABLE_PASSWORD_LOGIN=true
 
       # Pre-configured SSO via Authelia OIDC
       - IMMICH_CONFIG_FILE=/config/immich.json
@@ -67,14 +61,13 @@ services:
       - IMMICH_ALLOW_SETUP=false
     volumes:
       - ${DB_BASE}/immich/config.json:/config/immich.json${VOLUME_RO_OPTS}
-    # Debug mode: persistent Immich media mount disabled.
-    # Uncomment the lines below to restore persistence.
-    # volumes:
-    #   - ${DB_BASE}/immich/upload:/usr/src/app/upload${VOLUME_OPTS}
+      - ${DB_BASE}/immich/upload:/usr/src/app/upload${VOLUME_OPTS}
     labels:
       - "traefik.enable=true"
+      # Public photos access
       - "traefik.http.routers.immich.rule=Host(`photos.${DOMAIN}`)"
       - "traefik.http.routers.immich.entrypoints=web"
+      - "traefik.http.routers.immich.service=immich"
       - "traefik.http.services.immich.loadbalancer.server.port=2283"
 
   ####################################################################
@@ -92,7 +85,7 @@ services:
       - TZ=${TZ:-Europe/Zurich}
     # Debug mode: persistent ML cache mount disabled.
     # Uncomment the lines below to restore persistence.
-    # volumes:
-    #   - ${DB_BASE}/immich/model-cache:/cache${VOLUME_OPTS}
+    volumes:
+      - ${DB_BASE}/immich/model-cache:/cache${VOLUME_OPTS}
 
 
